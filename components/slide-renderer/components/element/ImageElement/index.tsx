@@ -11,16 +11,27 @@ import { useClipImage } from './useClipImage';
 import { useFilter } from './useFilter';
 import { ImageOutline } from './ImageOutline';
 import { ImageClipHandler } from './ImageClipHandler';
+import { LazyImage } from './LazyImage';
 
 export interface ImageElementProps {
   elementInfo: PPTImageElement;
   selectElement?: (e: React.MouseEvent | React.TouchEvent, element: PPTImageElement) => void;
+  /** Stage ID for lazy loading generated images */
+  stageId?: string;
+}
+
+/**
+ * Check if src is a generated image placeholder (gen_img_*)
+ */
+function isGeneratedImageSrc(src: string): boolean {
+  return /^gen_img_[\w-]+$/i.test(src);
 }
 
 /**
  * Image element component with interaction support
+ * Supports lazy loading for AI-generated images
  */
-export function ImageElement({ elementInfo, selectElement }: ImageElementProps) {
+export function ImageElement({ elementInfo, selectElement, stageId }: ImageElementProps) {
   const clipingImageElementId = useCanvasStore.use.clipingImageElementId();
   const setClipingImageElementId = useCanvasStore.use.setClipingImageElementId();
   const { updateElement } = useCanvasOperations();
@@ -128,20 +139,39 @@ export function ImageElement({ elementInfo, selectElement }: ImageElementProps) 
               className="image-content w-full h-full overflow-hidden relative"
               style={{ clipPath: clipShape.style }}
             >
-              <img
-                src={elementInfo.src}
-                draggable={false}
-                style={{
-                  position: 'absolute',
-                  top: imgPosition.top,
-                  left: imgPosition.left,
-                  width: imgPosition.width,
-                  height: imgPosition.height,
-                  filter,
-                }}
-                alt=""
-                onDragStart={(e) => e.preventDefault()}
-              />
+              {stageId && isGeneratedImageSrc(elementInfo.src) ? (
+                <LazyImage
+                  elementId={elementInfo.src}
+                  stageId={stageId}
+                  fallbackSrc={elementInfo.src}
+                  alt=""
+                  width={elementInfo.width}
+                  height={elementInfo.height}
+                  style={{
+                    position: 'absolute',
+                    top: imgPosition.top,
+                    left: imgPosition.left,
+                    width: imgPosition.width,
+                    height: imgPosition.height,
+                    filter,
+                  }}
+                />
+              ) : (
+                <img
+                  src={elementInfo.src}
+                  draggable={false}
+                  style={{
+                    position: 'absolute',
+                    top: imgPosition.top,
+                    left: imgPosition.left,
+                    width: imgPosition.width,
+                    height: imgPosition.height,
+                    filter,
+                  }}
+                  alt=""
+                  onDragStart={(e) => e.preventDefault()}
+                />
+              )}
               {elementInfo.colorMask && (
                 <div
                   className="color-mask absolute inset-0"

@@ -313,141 +313,38 @@ Use `pbl` type when the course involves complex, multi-step project work that be
 
 ## Output Format
 
-Output a JSON **object** (not a bare array) with this structure:
+Output a JSON object with `languageDirective` and `outlines` fields.
 
-```json
-{
-  "languageDirective": "2-5 sentence instruction describing the course language behavior",
-  "outlines": [
-    {
-      "id": "scene_1",
-      "type": "slide",
-      "title": "Scene Title",
-      "description": "1-2 sentences describing the teaching purpose",
-      "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
-      "teachingObjective": "Corresponding learning objective",
-      "estimatedDuration": 120,
-      "order": 1,
-      "suggestedImageIds": ["img_1"],
-      "mediaGenerations": [
-        {
-          "type": "image",
-          "prompt": "A diagram showing the key concept",
-          "elementId": "gen_img_1",
-          "aspectRatio": "16:9"
-        }
-      ]
-    },
-    {
-      "id": "scene_2",
-      "type": "interactive",
-      "title": "Interactive Exploration",
-      "description": "Students explore the concept through hands-on interactive visualization",
-      "keyPoints": ["Interactive element 1", "Observable phenomenon"],
-      "order": 2,
-      "interactiveConfig": {
-        "conceptName": "Concept Name",
-        "conceptOverview": "Brief description of what this interactive demonstrates",
-        "designIdea": "Describe the interactive elements: sliders, drag handles, animations, etc.",
-        "subject": "Physics"
-      }
-    },
-    {
-      "id": "scene_3",
-      "type": "quiz",
-      "title": "Knowledge Check",
-      "description": "Test student understanding of XX concept",
-      "keyPoints": ["Test point 1", "Test point 2"],
-      "order": 3,
-      "quizConfig": {
-        "questionCount": 2,
-        "difficulty": "medium",
-        "questionTypes": ["single", "multiple", "short_answer"]
-      }
-    },
-    {
-      "id": "scene_2",
-      "type": "interactive",
-      "title": "Interactive Exploration",
-      "description": "Students explore the concept through hands-on interactive visualization",
-      "keyPoints": ["Interactive element 1", "Observable phenomenon"],
-      "order": 2,
-      "widgetType": "simulation",
-      "widgetOutline": {
-        "concept": "Projectile Motion",
-        "keyVariables": ["angle", "velocity"]
-      }
-    },
-    {
-      "id": "scene_3",
-      "type": "quiz",
-      "title": "Knowledge Check",
-      "description": "Test student understanding of XX concept",
-      "keyPoints": ["Test point 1", "Test point 2"],
-      "order": 3,
-      "quizConfig": {
-        "questionCount": 2,
-        "difficulty": "medium",
-        "questionTypes": ["single", "multiple", "short_answer"]
-      }
-    }
-  ]
-}
-```
+### Required Fields
 
-### Field Descriptions
+| Field | Type | Description |
+|-------|------|-------------|
+| `languageDirective` | string | 2-5 sentences describing course language behavior |
+| `outlines` | array | Scene outline objects |
 
-| Field             | Type                     | Required | Description                                                                                      |
-| ----------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------ |
-| id                | string                   | ✅       | Unique identifier, format: `scene_1`, `scene_2`...                                               |
-| type              | string                   | ✅       | `"slide"`, `"quiz"`, `"interactive"`, or `"pbl"`                                                 |
-| title             | string                   | ✅       | Scene title, concise and clear                                                                   |
-| description       | string                   | ✅       | 1-2 sentences describing teaching purpose                                                        |
-| keyPoints         | string[]                 | ✅       | 3-5 core points                                                                                  |
-| teachingObjective | string                   | ❌       | Corresponding learning objective                                                                 |
-| estimatedDuration | number                   | ❌       | Estimated duration (seconds)                                                                     |
-| order             | number                   | ✅       | Sort order, starting from 1                                                                      |
-| suggestedImageIds | string[]                 | ❌       | Suggested image IDs to use                                                                       |
-| mediaGenerations  | MediaGenerationRequest[] | ❌       | AI image/video generation requests when PDF images insufficient                                  |
-| quizConfig        | object                   | ❌       | Required for quiz type, contains questionCount/difficulty/questionTypes                          |
-| interactiveConfig | object                   | ❌ (deprecated) | Legacy: use widgetType + widgetOutline instead                                                                                       |
-| widgetType        | string                   | ✅ (for interactive) | Widget type: "simulation", "diagram", "code", "game", "visualization3d"                                                 |
-| widgetOutline     | object                   | ✅ (for interactive) | Widget-specific configuration (see Widget Type Selection)                                                               |
-| pblConfig         | object                   | ❌       | Required for pbl type, contains projectTopic/projectDescription/targetSkills/issueCount/language |
+### Scene Outline Fields
 
-### quizConfig Structure
+| Field | Required | Description |
+|-------|----------|-------------|
+| `id` | ✅ | `scene_1`, `scene_2`... |
+| `type` | ✅ | `slide`, `quiz`, `interactive`, `pbl` |
+| `title` | ✅ | Scene title |
+| `description` | ✅ | 1-2 sentences |
+| `keyPoints` | ✅ | 3-5 core points |
+| `order` | ✅ | Sort order (1, 2, 3...) |
+| `mediaGenerations` | ❌ | AI image/video requests (NOT for math/physics) |
+| `quizConfig` | quiz only | `{questionCount, difficulty, questionTypes}` |
+| `widgetType` | interactive only | `simulation`, `diagram`, `code`, `game`, `visualization3d` |
+| `widgetOutline` | interactive only | Widget config (see table above) |
+| `pblConfig` | pbl only | `{projectTopic, projectDescription, targetSkills, issueCount}` |
 
-```json
-{
-  "questionCount": 2,
-  "difficulty": "easy" | "medium" | "hard",
-  "questionTypes": ["single", "multiple", "short_answer"]
-}
-```
+### Constraints
 
-### interactiveConfig Structure
-
-```json
-{
-  "conceptName": "Name of the concept to visualize",
-  "conceptOverview": "Brief description of what this interactive demonstrates",
-  "designIdea": "Detailed description of interactive elements and user interactions",
-  "subject": "Subject area (e.g., Physics, Mathematics)"
-}
-```
-
-### pblConfig Structure
-
-```json
-{
-  "projectTopic": "Main topic of the project",
-  "projectDescription": "Brief description of what students will build/accomplish",
-  "targetSkills": ["Skill 1", "Skill 2", "Skill 3"],
-  "issueCount": 3
-}
-```
-
----
+1. **Scenes per course**: 1-2 scenes per minute of duration
+2. **Interactive scenes**: Max 1-2 per course
+3. **PBL scenes**: Max 1 per course
+4. **Math/Physics**: NO `mediaGenerations` — use `interactive` widgets instead
+5. **No teacher identity**: Titles and keyPoints must be neutral
 
 ## Important Reminders
 

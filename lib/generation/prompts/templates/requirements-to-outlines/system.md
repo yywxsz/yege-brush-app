@@ -144,6 +144,17 @@ When a slide scene benefits from an image or video, mark it for AI generation:
 - Specify composition: "centered composition", "split view showing before and after"
 - For educational content: prefer clean, diagrammatic, infographic styles with clear labels
 
+**Special guidelines for math/STEM educational content**:
+
+- **Background**: Always use clean white or light gray backgrounds — avoid dark backgrounds, gradients, or decorative patterns that can distract from mathematical content
+- **Style**: Prefer vector-style diagrams with clear lines and minimal visual noise
+- **Text in images**: All formulas, equations, labels, and annotations must be clearly legible — use high-contrast colors (black text on white background)
+- **Avoid**: Cluttered backgrounds, decorative elements, photo-realistic textures, or any visual elements that could confuse the mathematical concept being illustrated
+- **Charts and graphs**: Use clean, professional chart styles with clear axis labels and gridlines
+- **Geometric diagrams**: Use precise lines and shapes with clear labeling of points, angles, and measurements
+- **Example good prompt**: "A clean white-background diagram showing the Pythagorean theorem with a right triangle, sides labeled a, b, c, with clear vector-style lines and black text labels, educational infographic style"
+- **Example bad prompt**: "A beautiful artistic rendering of a triangle with colorful background and decorative elements"
+
 **Content safety guidelines for media prompts** (to avoid being blocked by the generation model's safety filter):
 
 - Do NOT describe specific human facial features, body details, or physical appearance — use abstract or iconographic representations (e.g., "a silhouette of a person" instead of detailed descriptions)

@@ -21,6 +21,10 @@ import type { WebSearchProviderId } from '@/lib/web-search/types';
 import { createLogger } from '@/lib/logger';
 import { validateProvider, validateModel } from '@/lib/store/settings-validation';
 import { createSelectors } from '@/lib/utils/create-selectors';
+import {
+  validatePersistedSettings,
+  isStateCorrupted,
+} from '@/lib/store/settings-schema';
 
 const log = createLogger('Settings');
 
@@ -173,6 +177,9 @@ export interface SettingsState {
   chatAreaCollapsed: boolean;
   chatAreaWidth: number;
 
+  // Performance settings
+  reducedMotion: boolean; // Disable blur/animation for low-end devices
+
   // Actions
   setModel: (providerId: ProviderId, modelId: string) => void;
   setProviderConfig: (providerId: ProviderId, config: Partial<ProvidersConfig[ProviderId]>) => void;
@@ -191,6 +198,9 @@ export interface SettingsState {
   setSidebarCollapsed: (collapsed: boolean) => void;
   setChatAreaCollapsed: (collapsed: boolean) => void;
   setChatAreaWidth: (width: number) => void;
+
+  // Performance actions
+  setReducedMotion: (enabled: boolean) => void;
 
   // Feature notification actions
   dismissImageGenerationFeatureNotice: () => void;
@@ -589,6 +599,9 @@ const useSettingsStoreBase = create<SettingsState>()(
       chatAreaCollapsed: false,
       chatAreaWidth: 400,
 
+      // Performance settings
+      reducedMotion: false,
+
       // Actions
       setModel: (providerId, modelId) => set({ providerId, modelId }),
       setProviderConfig: (providerId, config) =>
@@ -620,6 +633,9 @@ const useSettingsStoreBase = create<SettingsState>()(
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       setChatAreaCollapsed: (collapsed) => set({ chatAreaCollapsed: collapsed }),
       setChatAreaWidth: (width) => set({ chatAreaWidth: width }),
+
+      // Performance actions
+      setReducedMotion: (enabled) => set({ reducedMotion: enabled }),
 
       // Feature notification actions
       dismissImageGenerationFeatureNotice: () =>
@@ -1283,7 +1299,19 @@ const useSettingsStoreBase = create<SettingsState>()(
       version: 3,
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {
-        const state = persistedState as Partial<SettingsState>;
+        // Validate persisted state before migration
+        if (isStateCorrupted(persistedState)) {
+          log.warn('Persisted state is corrupted, returning defaults');
+          return {} as Partial<SettingsState>;
+        }
+
+        const validatedState = validatePersistedSettings(persistedState);
+        if (!validatedState) {
+          log.warn('Persisted state validation failed, returning defaults');
+          return {} as Partial<SettingsState>;
+        }
+
+        const state = validatedState as Partial<SettingsState>;
 
         // v0 → v1: clear hardcoded default model so user must actively select
         if (version === 0) {
@@ -1430,6 +1458,11 @@ const useSettingsStoreBase = create<SettingsState>()(
           (state as Record<string, unknown>).autoAgentCount = 3;
         }
 
+        // Add default reducedMotion if missing
+        if ((state as Record<string, unknown>).reducedMotion === undefined) {
+          (state as Record<string, unknown>).reducedMotion = false;
+        }
+
         // Migrate Web Search: old flat fields → new provider-based config
         if (!state.webSearchProvidersConfig) {
           const stateRecord = state as Record<string, unknown>;
@@ -1456,7 +1489,19 @@ const useSettingsStoreBase = create<SettingsState>()(
       // Custom merge: always sync built-in providers on every rehydrate,
       // so newly added providers/models appear without clearing cache.
       merge: (persistedState, currentState) => {
-        const merged = { ...currentState, ...(persistedState as object) };
+        // Validate persisted state before merge
+        if (isStateCorrupted(persistedState)) {
+          log.warn('Persisted state is corrupted during merge, using current state');
+          return currentState;
+        }
+
+        const validatedState = validatePersistedSettings(persistedState);
+        if (!validatedState) {
+          log.warn('Persisted state validation failed during merge, using current state');
+          return currentState;
+        }
+
+        const merged = { ...currentState, ...validatedState };
         ensureBuiltInProviders(merged as Partial<SettingsState>);
         promoteLegacyCustomProviderBaseUrls(merged as Partial<SettingsState>);
         ensureBuiltInImageProviders(merged as Partial<SettingsState>);

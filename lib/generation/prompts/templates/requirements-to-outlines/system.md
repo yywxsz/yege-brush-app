@@ -122,6 +122,28 @@ When comparing or listing information, specify in keyPoints:
 
 **Guideline: Add image generation for slide scenes when visual content enhances learning. Not every slide needs an image — prioritize quality over quantity.**
 
+**⚠️ CRITICAL: Math/Physics/Geometry Content — DO NOT use AI image generation**
+
+For mathematical, physical, or geometric content, **NEVER request AI-generated images**. AI image models cannot produce precise geometric figures, function graphs, or coordinate systems. Instead, use:
+
+1. **Interactive widgets** (`simulation`, `diagram`, `visualization3d`) — for interactive graphs and geometric constructions
+2. **LaTeX/MathJax** — for formulas and equations rendered directly in slides
+3. **Code-based rendering** — ECharts, Mermaid, JSX Canvas for charts and diagrams
+4. **Text descriptions** — for abstract mathematical concepts
+
+**Subjects that MUST NOT use AI image generation:**
+- Mathematics (algebra, geometry, calculus, trigonometry, statistics)
+- Physics (mechanics, electromagnetism, optics)
+- Chemistry (molecular structures, reaction equations — use diagrams or 3D widgets)
+- Engineering (technical drawings, schematics)
+
+**Subjects where AI image generation IS appropriate:**
+- Biology (cell structures, ecosystems, anatomy — when precision is not critical)
+- Geography (maps, landscapes, climate diagrams)
+- History (historical scenes, artifacts, architecture)
+- Literature (character illustrations, scene depictions)
+- General education (conceptual diagrams, infographics)
+
 When a slide scene benefits from an image or video, mark it for AI generation:
 
 - Add a `mediaGenerations` array to the scene outline
@@ -146,14 +168,23 @@ When a slide scene benefits from an image or video, mark it for AI generation:
 
 **Special guidelines for math/STEM educational content**:
 
-- **Background**: Always use clean white or light gray backgrounds — avoid dark backgrounds, gradients, or decorative patterns that can distract from mathematical content
+**⚠️ IMPORTANT: For math/physics/geometry, use interactive widgets instead of AI images.**
+
+- **Geometric diagrams**: Use `interactive` scene with `widgetType: "diagram"` or `widgetType: "simulation"`
+- **Function graphs**: Use `interactive` scene with `widgetType: "simulation"` for interactive plotting
+- **Formulas and equations**: Use LaTeX/MathJax in slide text — no image needed
+- **Coordinate systems**: Use interactive widgets for explorable graphs
+- **Proofs and derivations**: Use slide text with LaTeX — step-by-step reveals work well
+
+**For non-math visual content (biology, geography, history, etc.)**:
+
+- **Background**: Always use clean white or light gray backgrounds — avoid dark backgrounds, gradients, or decorative patterns that can distract from content
 - **Style**: Prefer vector-style diagrams with clear lines and minimal visual noise
 - **Text in images**: All formulas, equations, labels, and annotations must be clearly legible — use high-contrast colors (black text on white background)
-- **Avoid**: Cluttered backgrounds, decorative elements, photo-realistic textures, or any visual elements that could confuse the mathematical concept being illustrated
+- **Avoid**: Cluttered backgrounds, decorative elements, photo-realistic textures, or any visual elements that could confuse the concept being illustrated
 - **Charts and graphs**: Use clean, professional chart styles with clear axis labels and gridlines
-- **Geometric diagrams**: Use precise lines and shapes with clear labeling of points, angles, and measurements
-- **Example good prompt**: "A clean white-background diagram showing the Pythagorean theorem with a right triangle, sides labeled a, b, c, with clear vector-style lines and black text labels, educational infographic style"
-- **Example bad prompt**: "A beautiful artistic rendering of a triangle with colorful background and decorative elements"
+- **Example good prompt**: "A clean white-background diagram showing the water cycle with evaporation, condensation, and precipitation arrows, educational infographic style"
+- **Example bad prompt**: "A beautiful artistic rendering with colorful background and decorative elements"
 
 **Content safety guidelines for media prompts** (to avoid being blocked by the generation model's safety filter):
 

@@ -23,13 +23,36 @@ export interface ParsedWordContent {
  */
 export async function parseWord(buffer: Buffer): Promise<ParsedWordContent> {
   try {
+    // Check if this might be an old .doc format (binary, not ZIP)
+    // Old .doc files start with D0 CF 11 E0 (OLE2 signature)
+    const header = buffer.slice(0, 4);
+    const isOle2 = header[0] === 0xd0 && header[1] === 0xcf && header[2] === 0x11 && header[3] === 0xe0;
+    
+    if (isOle2) {
+      throw new Error(
+        '旧版 .doc 格式不支持。请将文件另存为 .docx 格式（Word 2007+），或转换为 PDF 后上传。\n\n' +
+        'Old .doc format is not supported. Please save as .docx format (Word 2007+) or convert to PDF.'
+      );
+    }
+
     const zip = await JSZip.loadAsync(buffer);
 
     // Main document content is in word/document.xml
     const documentXml = await zip.file('word/document.xml')?.async('string');
 
     if (!documentXml) {
-      throw new Error('Invalid .docx file: word/document.xml not found');
+      // List available files for debugging
+      const files = Object.keys(zip.files);
+      log.error('Invalid .docx structure. Available files:', files.slice(0, 10));
+      
+      throw new Error(
+        '无效的 .docx 文件结构。请确认文件是有效的 Word 文档。\n\n' +
+        '可能的原因：\n' +
+        '1. 文件已损坏\n' +
+        '2. 文件不是真正的 .docx 格式\n' +
+        '3. 文件是其他格式（如 .doc, .txt）被重命名为 .docx\n\n' +
+        '建议：请用 Word 打开文件，另存为 .docx 格式后重试。'
+      );
     }
 
     // Extract text from XML
@@ -119,4 +142,36 @@ export function isWordFile(filename: string): boolean {
 export function isPdfFile(filename: string): boolean {
   const ext = filename.toLowerCase().split('.').pop();
   return ext === 'pdf';
+}
+
+/**
+ * Detect actual file type by checking file header (magic bytes)
+ * More reliable than extension-based detection
+ */
+export function detectFileType(buffer: Buffer): 'pdf' | 'docx' | 'doc' | 'unknown' {
+  // PDF files start with %PDF
+  if (buffer.length >= 5) {
+    const header = buffer.slice(0, 5).toString('ascii');
+    if (header === '%PDF-') {
+      return 'pdf';
+    }
+  }
+  
+  // Old .doc files start with D0 CF 11 E0 (OLE2 signature)
+  if (buffer.length >= 4) {
+    if (buffer[0] === 0xd0 && buffer[1] === 0xcf && buffer[2] === 0x11 && buffer[3] === 0xe0) {
+      return 'doc';
+    }
+  }
+  
+  // .docx files are ZIP archives starting with PK (50 4B)
+  if (buffer.length >= 4) {
+    if (buffer[0] === 0x50 && buffer[1] === 0x4b) {
+      // Could be .docx or other ZIP - check for word/document.xml
+      // For now, assume it's docx if extension matches
+      return 'docx';
+    }
+  }
+  
+  return 'unknown';
 }

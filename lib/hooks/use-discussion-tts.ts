@@ -94,26 +94,28 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange, language
     (agentId: string | null): ResolvedVoice => {
       // Filter providers by target language if available
       const providers = getAvailableProvidersWithVoices(ttsProvidersConfig, targetLanguage);
-      if (!agentId) {
-        if (providers.length > 0) {
-          return {
-            providerId: providers[0].providerId,
-            voiceId: providers[0].voices[0]?.id ?? 'default',
-          };
-        }
+      
+      // If no providers configured, fall back to browser TTS
+      if (providers.length === 0) {
         return { providerId: 'browser-native-tts', voiceId: 'default' };
       }
+      
+      if (!agentId) {
+        return {
+          providerId: providers[0].providerId,
+          voiceId: providers[0].voices[0]?.id ?? 'default',
+        };
+      }
+      
       const agent = agents.find((a) => a.id === agentId);
       if (!agent) {
-        if (providers.length > 0) {
-          return {
-            providerId: providers[0].providerId,
-            voiceId: providers[0].voices[0]?.id ?? 'default',
-            modelId: undefined,
-          };
-        }
-        return { providerId: 'browser-native-tts', voiceId: 'default', modelId: undefined };
+        return {
+          providerId: providers[0].providerId,
+          voiceId: providers[0].voices[0]?.id ?? 'default',
+          modelId: undefined,
+        };
       }
+      
       // Teacher: always use global lecture voice (single source of truth with settings)
       if (agent.role === 'teacher') {
         return {
@@ -122,8 +124,46 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange, language
           modelId: ttsProvidersConfig[globalTtsProviderId]?.modelId,
         };
       }
+      
+      // For students and other agents:
+      // 1. Check if agent has voiceConfig
+      // 2. Otherwise, use the SAME provider as teacher but with a different voice
       const index = agentIndexMap.current.get(agentId) ?? 0;
-      return resolveAgentVoice(agent, index, providers, targetLanguage);
+      
+      // If agent has explicit voiceConfig, use it
+      if (agent.voiceConfig) {
+        return resolveAgentVoice(agent, index, providers, targetLanguage);
+      }
+      
+      // IMPORTANT: Use the same provider as teacher to ensure consistent voice quality
+      // Select a different voice for each agent based on their index
+      const teacherProvider = providers.find(p => p.providerId === globalTtsProviderId);
+      if (teacherProvider && teacherProvider.voices.length > 0) {
+        // Use different voices for different agents (skip the teacher's voice)
+        const availableVoices = teacherProvider.voices.filter(v => v.id !== globalTtsVoice);
+        if (availableVoices.length > 0) {
+          const voiceIndex = index % availableVoices.length;
+          return {
+            providerId: globalTtsProviderId,
+            voiceId: availableVoices[voiceIndex].id,
+            modelId: ttsProvidersConfig[globalTtsProviderId]?.modelId,
+          };
+        }
+        // If no other voices, use the same as teacher
+        return {
+          providerId: globalTtsProviderId,
+          voiceId: teacherProvider.voices[index % teacherProvider.voices.length].id,
+          modelId: ttsProvidersConfig[globalTtsProviderId]?.modelId,
+        };
+      }
+      
+      // Fallback: use first available provider
+      const firstProvider = providers[0];
+      return {
+        providerId: firstProvider.providerId,
+        voiceId: firstProvider.voices[index % firstProvider.voices.length].id,
+        modelId: ttsProvidersConfig[firstProvider.providerId]?.modelId,
+      };
     },
     [agents, ttsProvidersConfig, globalTtsProviderId, globalTtsVoice, targetLanguage],
   );

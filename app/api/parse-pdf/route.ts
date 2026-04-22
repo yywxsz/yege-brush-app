@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { parsePDF } from '@/lib/pdf/pdf-providers';
-import { parseWord, isWordFile, isPdfFile } from '@/lib/pdf/word-parser';
+import { parseWord, isWordFile, isPdfFile, detectFileType } from '@/lib/pdf/word-parser';
 import { resolvePDFApiKey, resolvePDFBaseUrl } from '@/lib/server/provider-config';
 import type { PDFProviderId } from '@/lib/pdf/types';
 import type { ParsedPdfContent } from '@/lib/types/pdf';
@@ -35,12 +35,27 @@ export async function POST(req: NextRequest) {
 
     fileName = file.name;
 
-    // Check file type and route accordingly
-    if (isWordFile(file.name)) {
+    // Read file content for type detection
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // Detect actual file type by magic bytes (more reliable than extension)
+    const actualType = detectFileType(buffer);
+    const extensionType = isPdfFile(file.name) ? 'pdf' : (isWordFile(file.name) ? 'word' : 'unknown');
+    
+    log.info(`File: ${file.name}, Extension type: ${extensionType}, Actual type: ${actualType}`);
+    
+    // Warn if extension doesn't match actual content
+    if (actualType === 'pdf' && isWordFile(file.name)) {
+      log.warn(`File "${file.name}" has Word extension but is actually a PDF`);
+    } else if ((actualType === 'doc' || actualType === 'docx') && isPdfFile(file.name)) {
+      log.warn(`File "${file.name}" has PDF extension but is actually a Word document`);
+    }
+
+    // Route based on ACTUAL file type, not extension
+    if (actualType === 'doc' || actualType === 'docx' || (actualType === 'unknown' && isWordFile(file.name))) {
       // Handle Word document
-      log.info(`Parsing Word document: ${file.name}`);
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      log.info(`Parsing Word document: ${file.name} (detected as ${actualType})`);
       const result = await parseWord(buffer);
 
       const resultWithMetadata: ParsedPdfContent = {
@@ -57,12 +72,24 @@ export async function POST(req: NextRequest) {
       return apiSuccess({ data: resultWithMetadata });
     }
 
-    // Handle PDF (existing logic)
-    if (!isPdfFile(file.name)) {
+    // Handle PDF
+    if (actualType !== 'pdf' && actualType !== 'unknown') {
       return apiError(
         'UNSUPPORTED_FILE_TYPE',
         400,
-        `Unsupported file type: ${file.name}. Please upload a PDF or Word document (.pdf, .docx, .doc)`,
+        `检测到文件实际类型与扩展名不符。\n\n` +
+        `文件名: ${file.name}\n` +
+        `扩展名: ${extensionType}\n` +
+        `实际类型: ${actualType}\n\n` +
+        `请确认文件格式正确，或将文件转换为 PDF 后上传。`
+      );
+    }
+    
+    if (!isPdfFile(file.name) && actualType !== 'pdf') {
+      return apiError(
+        'UNSUPPORTED_FILE_TYPE',
+        400,
+        `Unsupported file type: ${file.name}. Please upload a PDF or Word document (.pdf, .docx)`,
       );
     }
 
@@ -88,11 +115,7 @@ export async function POST(req: NextRequest) {
         : resolvePDFBaseUrl(effectiveProviderId, baseUrl || undefined),
     };
 
-    // Convert PDF to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Parse PDF using the provider system
+    // Parse PDF using the provider system (buffer already read above)
     const result = await parsePDF(config, buffer);
 
     // Add file metadata

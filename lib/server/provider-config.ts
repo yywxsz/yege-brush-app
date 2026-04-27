@@ -49,7 +49,6 @@ const LLM_ENV_MAP: Record<string, string> = {
   SILICONFLOW: 'siliconflow',
   DOUBAO: 'doubao',
   GROK: 'grok',
-  OLLAMA: 'ollama',
 };
 
 const TTS_ENV_MAP: Record<string, string> = {
@@ -202,9 +201,7 @@ const _configs: Map<string, ServerConfig> = new Map();
 
 function buildConfig(yamlData: YamlData): ServerConfig {
   return {
-    providers: loadEnvSection(LLM_ENV_MAP, yamlData.providers, {
-      keylessProviders: new Set(['ollama']),
-    }),
+    providers: loadEnvSection(LLM_ENV_MAP, yamlData.providers),
     tts: loadEnvSection(TTS_ENV_MAP, yamlData.tts),
     asr: loadEnvSection(ASR_ENV_MAP, yamlData.asr),
     pdf: loadEnvSection(PDF_ENV_MAP, yamlData.pdf, { requiresBaseUrl: true }),

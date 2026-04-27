@@ -48,6 +48,7 @@ function AgentVoicePill({
   const previewAbortRef = useRef<AbortController | null>(null);
 
   const displayName = (() => {
+    if (!resolved) return '未配置';
     for (const p of availableProviders) {
       if (p.providerId === resolved.providerId) {
         const v = p.voices.find((voice) => voice.id === resolved.voiceId);
@@ -193,9 +194,9 @@ function AgentVoicePill({
               </div>
               {group.voices.map((voice) => {
                 const isActive =
-                  resolved.providerId === provider.providerId &&
-                  resolved.voiceId === voice.id &&
-                  (resolved.modelId || '') === (group.modelId || '');
+                  resolved?.providerId === provider.providerId &&
+                  resolved?.voiceId === voice.id &&
+                  (resolved?.modelId || '') === (group.modelId || '');
                 const previewKey = `${provider.providerId}::${voice.id}`;
                 const isPreviewing = previewingId === previewKey;
                 return (

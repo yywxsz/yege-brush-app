@@ -323,9 +323,11 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 };
 
 // Initialize default audio config
+// Default to openai-tts (requires API key configuration)
+// browser-native-tts is disabled by default due to robotic voice quality
 const getDefaultAudioConfig = () => ({
-  ttsProviderId: 'browser-native-tts' as TTSProviderId,
-  ttsVoice: 'default',
+  ttsProviderId: 'openai-tts' as TTSProviderId,
+  ttsVoice: 'alloy',
   ttsSpeed: 1.0,
   asrProviderId: 'browser-native' as ASRProviderId,
   asrLanguage: 'zh',
@@ -337,7 +339,7 @@ const getDefaultAudioConfig = () => ({
     'doubao-tts': { apiKey: '', baseUrl: '', enabled: false },
     'elevenlabs-tts': { apiKey: '', baseUrl: '', enabled: false },
     'minimax-tts': { apiKey: '', baseUrl: '', modelId: 'speech-2.8-hd', enabled: false },
-    'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
+    'browser-native-tts': { apiKey: '', baseUrl: '', enabled: false }, // Disabled by default - robotic voice
   } as Record<
     TTSProviderId,
     { apiKey: string; baseUrl: string; modelId?: string; enabled: boolean }
@@ -512,8 +514,8 @@ const useSettingsStoreBase = create<SettingsState>()(
 
       ttsModel: 'openai-tts',
 
-      ttsProviderId: 'browser-native-tts',
-      ttsVoice: 'default',
+      ttsProviderId: 'openai-tts',
+      ttsVoice: 'alloy',
       ttsSpeed: 1,
       asrProviderId: 'browser-native',
       asrLanguage: 'zh',
@@ -792,8 +794,8 @@ const useSettingsStoreBase = create<SettingsState>()(
           return {
             ttsProvidersConfig: rest as typeof state.ttsProvidersConfig,
             ...(state.ttsProviderId === id && {
-              ttsProviderId: 'browser-native-tts' as TTSProviderId,
-              ttsVoice: 'default',
+              ttsProviderId: 'openai-tts' as TTSProviderId,
+              ttsVoice: 'alloy',
             }),
           };
         }),

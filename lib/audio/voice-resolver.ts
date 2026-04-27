@@ -115,16 +115,18 @@ function voiceLanguageMatches(voiceLanguage: string | undefined, targetLanguage:
  * 1. If agent has voiceConfig and the voice is still valid, use it
  * 2. If targetLanguage is provided, prefer providers with matching language voices
  * 3. Otherwise, use the first available provider + deterministic voice by index
+ * 4. Returns null if no providers available (disables TTS instead of using robotic browser-native-tts)
  */
 export function resolveAgentVoice(
   agent: AgentConfig,
   agentIndex: number,
   availableProviders: ProviderWithVoices[],
   targetLanguage?: string,
-): ResolvedVoice {
+): ResolvedVoice | null {
   // Agent-specific config
   if (agent.voiceConfig) {
     // Browser-native voices are dynamic (not in static registry), so skip validation
+    // But only allow if explicitly configured (not as fallback)
     if (agent.voiceConfig.providerId === 'browser-native-tts') {
       return {
         providerId: agent.voiceConfig.providerId,
@@ -177,7 +179,9 @@ export function resolveAgentVoice(
     };
   }
 
-  return { providerId: 'browser-native-tts', voiceId: 'default' };
+  // No providers available - return null to disable TTS
+  // This prevents falling back to robotic browser-native-tts
+  return null;
 }
 
 /**

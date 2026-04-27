@@ -91,19 +91,20 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange, language
   }, [agents]);
 
   const resolveVoiceForAgent = useCallback(
-    (agentId: string | null): ResolvedVoice => {
+    (agentId: string | null): ResolvedVoice | null => {
       // Filter providers by target language if available
       const providers = getAvailableProvidersWithVoices(ttsProvidersConfig, targetLanguage);
       
-      // If no providers configured, fall back to browser TTS
+      // If no providers configured, return null (no TTS available)
+      // This disables TTS instead of falling back to robotic browser-native-tts
       if (providers.length === 0) {
-        return { providerId: 'browser-native-tts', voiceId: 'default' };
+        return null;
       }
       
       if (!agentId) {
         return {
           providerId: providers[0].providerId,
-          voiceId: providers[0].voices[0]?.id ?? 'default',
+          voiceId: providers[0].voices[0]?.id ?? 'alloy',
         };
       }
       
@@ -111,7 +112,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange, language
       if (!agent) {
         return {
           providerId: providers[0].providerId,
-          voiceId: providers[0].voices[0]?.id ?? 'default',
+          voiceId: providers[0].voices[0]?.id ?? 'alloy',
           modelId: undefined,
         };
       }
@@ -272,7 +273,11 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange, language
     (messageId: string, partId: string, fullText: string, agentId: string | null) => {
       if (!enabled || ttsMuted || !fullText.trim()) return;
 
-      const { providerId, modelId, voiceId } = resolveVoiceForAgent(agentId);
+      const voice = resolveVoiceForAgent(agentId);
+      // If no TTS provider configured, skip TTS (don't use robotic browser-native-tts)
+      if (!voice) return;
+      
+      const { providerId, modelId, voiceId } = voice;
       queueRef.current.push({
         messageId,
         partId,
